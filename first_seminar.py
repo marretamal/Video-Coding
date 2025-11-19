@@ -6,7 +6,6 @@ import numpy as np
 
 class ColorCoordsConverter:
 
-
     def rgb_to_yuv(r, g, b): #this first method converts RGB to YUV
         y = 0.257 * r + 0.504 * g + 0.098 * b + 16
         u = -0.148 * r - 0.291 * g + 0.439 * b + 128
@@ -84,10 +83,28 @@ def compress_to_grayscale(input_path, output_path):
         )
         print("Grayscale compressed image saved to:", output_path)
 
+# following the example from class, we apply RLE to compress zero runs only
+
+def run_length_encoding_zeros(byte_list):
+    encoded = []
+    i = 0
+    while i < len(byte_list):
+        if byte_list[i] == 0: # we found a zero, we count the run length
+            count = 1
+            i += 1
+            while i < len(byte_list) and byte_list[i] == 0:
+                count += 1
+                i += 1
+
+            encoded.extend([0, count]) # we store the zero and its count
+        else:
+            encoded.append(byte_list[i]) # non-zero byte, we store it normally (not compressed)
+            i += 1
+
+    return encoded
 
 
-#we test the code
-
+# TESTING EXERCISE 2
 R, G, B = 100, 150, 200
 print("RGB:", (R, G, B))
 
@@ -107,11 +124,17 @@ print("Back to RGB:", (r2, g2, b2))
 #     output_path="/Users/marretamal/Desktop/video_coding/S1-JPEG-JPEG2000-and-FFMpeg/output_coding.png"
 # )
 
-# TESTING EXERCISE 4
-pixels_serpentine = serpentine("selfie2.jpeg")
-for i in range(20):
-    print(pixels_serpentine[i])
+# # TESTING EXERCISE 4
+# pixels_serpentine = serpentine("selfie2.jpeg")
+# for i in range(20):
+#     print(pixels_serpentine[i])
 
-# TESTING EXERCISE 5
-compress_to_grayscale("selfie2.jpeg", "selfie3_gray_compressed.png")
-print("Done. Output:", "selfie3_gray_compressed.png")
+# # TESTING EXERCISE 5
+# compress_to_grayscale("selfie2.jpeg", "selfie3_gray_compressed.png")
+# print("Done. Output:", "selfie3_gray_compressed.png")
+
+# # TESTING EXERCISE 5 b)
+# data = [17, 8, 54, 0, 0, 0, 97, 5, 16, 0, 45, 23, 0, 0, 0, 67, 0, 8]
+# encoded = run_length_encoding_zeros(data)
+# print("Original: ", data)
+# print("Encoded : ", encoded)
