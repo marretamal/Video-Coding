@@ -3,6 +3,7 @@ from os import remove
 from PIL import Image
 import numpy as np
 from scipy.fftpack import dct, idct
+import pywt
 
 
 class ColorCoordsConverter:
@@ -143,8 +144,11 @@ class DCTTools: # apply 2D DCT and IDCT to 8x8 blocks of an image (simplified ve
 
         return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
 
-
-
+class DWTTools:
+    def dwt_2d(block):
+        return pywt.dwt2(block, 'haar')#library function that computes the 2D DWT using Haar wavelet by library pywt found online
+    def idwt_2d(coeffs):
+        return pywt.idwt2(coeffs, 'haar')
 
 
 # TESTING EXERCISE 2
@@ -183,16 +187,58 @@ print("Back to RGB:", (r2, g2, b2))
 
 # # TESTING EXERCISE 6
 
-# blocks = DCTTools.image_to_blocks("selfie2.jpeg")
-# first_block = blocks[0]
+#Loads image and break into 8×8 blocks, L forces grayscale, DCT pipeline operates on one channel only (the luminance channel)
+blocks = DCTTools.image_to_blocks("selfie2.jpeg") 
+first_block = blocks[0]
+print("First original 8×8 block:")
+print(first_block)
 
-# print("Original 8×8 block:")
-# print(first_block)
+dct_block = DCTTools.dct_2d(first_block)
+print("\nAfter DCT:")
+print(np.round(dct_block))
 
-# dct_block = DCTTools.dct_2d(first_block)
-# print("\nAfter DCT:")
-# print(np.round(dct_block))
+idct_block = DCTTools.idct_2d(dct_block)
+print("\nAfter inverse DCT (reconstructed):")
+print(np.round(idct_block))
 
-# idct_block = DCTTools.idct_2d(dct_block)
-# print("\nAfter inverse DCT (reconstructed):")
-# print(np.round(idct_block))
+# Apply DCT and then inverse DCT to every block
+reconstructed_blocks = []
+for block in blocks:
+    dct_block = DCTTools.dct_2d(block)
+    idct_block = DCTTools.idct_2d(dct_block)
+    reconstructed_blocks.append(idct_block)
+
+# Load original image to get size
+original_img = Image.open("selfie2.jpeg").convert("L") 
+h, w = np.array(original_img).shape
+
+# Reassemble the image from the reconstructed blocks
+reconstructed_img = DCTTools.blocks_to_image(reconstructed_blocks, (h, w))
+
+# Save and show the result
+reconstructed_img.save("reconstructed_ex6.png")
+print("Reconstructed image saved as reconstructed_ex6.png")
+
+
+# TESTING EXERCISE 7
+# Load image and convert to blocks
+blocks = DCTTools.image_to_blocks("selfie2.jpeg")
+print("Number of blocks:", len(blocks))
+
+# Apply DWT and then IDWT to each 8×8 block
+reconstructed_blocks = []
+for block in blocks:
+    coeffs = pywt.dwt2(block, 'haar')      
+    restored = pywt.idwt2(coeffs, 'haar')  # inverse transform
+    reconstructed_blocks.append(restored)
+
+# Load original image to get correct shape
+img = Image.open("selfie2.jpeg").convert("L")
+h, w = np.array(img).shape
+
+# Combine all blocks back into one image
+reconstructed_img = DCTTools.blocks_to_image(reconstructed_blocks, (h, w))
+
+# Save result
+reconstructed_img.save("reconstructed_dwt_ex7.png")
+print("DWT reconstructed image saved as reconstructed_dwt_ex7.png")
