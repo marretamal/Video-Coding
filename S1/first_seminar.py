@@ -50,26 +50,26 @@ def serpentine(file):
     serp = []
 
     for diagonal in range(width + height - 1):
-
-        #if we are in even diagonals we go up to the right
+        # even diagonals: go top-left → bottom-right along diagonal
         if diagonal % 2 == 0:
-            y = min(diagonal, height - 1)
-            x = diagonal - y
-            while y >= 0 and x < width:
+            x_start = max(0, diagonal - height + 1)
+            y_start = min(diagonal, height - 1)
+            x, y = x_start, y_start
+            while x < width and y >= 0:
                 serp.append(pixels[x, y])
                 x += 1
                 y -= 1
-
-        # if we are in odd diagonals we go down to the left
+        # odd diagonals: go bottom-right → top-left along diagonal
         else:
-            x = min(diagonal, width - 1)
-            y = diagonal - x
+            y_start = max(0, diagonal - width + 1)
+            x_start = min(diagonal, width - 1)
+            x, y = x_start, y_start
             while x >= 0 and y < height:
                 serp.append(pixels[x, y])
                 x -= 1
                 y += 1
 
-    return serp #return the list of pixels coordinates in serpentine order
+    return serp
 
 
 def compress_to_grayscale(input_path, output_path):
@@ -154,7 +154,7 @@ class DWTTools:
 
 
 
-
+"""
 
 # TESTING EXERCISE 3
 # FFmpeg.resize_image(
@@ -236,3 +236,4 @@ reconstructed_img = DCTTools.blocks_to_image(reconstructed_blocks, (h, w))
 # Save result
 reconstructed_img.save("reconstructed_dwt_ex7.png")
 print("DWT reconstructed image saved as reconstructed_dwt_ex7.png")
+"""

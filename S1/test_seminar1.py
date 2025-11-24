@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from PIL import Image
+import os
 from unittest.mock import patch
 
 from first_seminar import (
@@ -41,34 +42,40 @@ class TestFFmpeg(unittest.TestCase):
 class TestSerpentine(unittest.TestCase):
 
     def test_serpentine_hardcoded_image(self):
-        # create 3x3 test image manually
+        # Create a 3x3 test image manually
         img = Image.new("RGB", (3, 3))
 
-        # row 0
-        img.putpixel((0, 0), (1, 1, 1))
-        img.putpixel((1, 0), (2, 2, 2))
-        img.putpixel((2, 0), (3, 3, 3))
+        # Fill the image with values 1-9 for clarity
+        pixels = [
+            [(1,1,1), (2,2,2), (3,3,3)],
+            [(4,4,4), (5,5,5), (6,6,6)],
+            [(7,7,7), (8,8,8), (9,9,9)]
+        ]
 
-        # row 1
-        img.putpixel((0, 1), (4, 4, 4))
-        img.putpixel((1, 1), (5, 5, 5))
-        img.putpixel((2, 1), (6, 6, 6))
+        for y in range(3):
+            for x in range(3):
+                img.putpixel((x, y), pixels[y][x])
 
-        # row 2
-        img.putpixel((0, 2), (7, 7, 7))
-        img.putpixel((1, 2), (8, 8, 8))
-        img.putpixel((2, 2), (9, 9, 9))
+        # Save as PNG (lossless)
+        temp_file = "test3_img.png"
+        img.save(temp_file)
 
-        img.save("test3_img.jpg")
+        try:
+            # Run serpentine function
+            result = serpentine(temp_file)
 
-        result = serpentine("test3_img.jpg")
+            # Expected left-to-right serpentine order
+            expected = [
+                (1,1,1), (2,2,2), (4,4,4), 
+                (7,7,7), (5,5,5), (3,3,3), 
+                (6,6,6), (8,8,8), (9,9,9)
+            ]
 
-        # expected serpentine (zigzag) order: 1,2,4,7,5,3,6,8,9
-        expected = [(1,1,1), (2,2,2), (4,4,4), (7,7,7), (5,5,5),
-                    (3,3,3), (6,6,6), (8,8,8), (9,9,9)]
-
-        self.assertEqual(result, expected)
-
+            self.assertEqual(result, expected)
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
 
 class TestRunLengthEncoding(unittest.TestCase):
 
