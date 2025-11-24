@@ -33,13 +33,14 @@ class FFmpeg:
         except FileNotFoundError:
             pass
 
-        (
+        stream = (
             ffmpeg
             .input(path)
             .filter("scale", new_width, new_height)
             .output(output_path)
-            .run()
         )
+
+        ffmpeg.run(stream) 
         print(f"Image resized and saved to: {output_path}")
 
 def serpentine(file):
@@ -76,14 +77,15 @@ def compress_to_grayscale(input_path, output_path):
             remove(output_path)
         except FileNotFoundError:
             pass
-        (
+        stream = (
             ffmpeg
             .input(input_path)
             .filter("format", "gray")     # convert to black & white
             .output(output_path, vcodec='mjpeg', qscale=31)  # maximum compression with a quality scale of 31
-            .run()
         )
-        print("Grayscale compressed image saved to:", output_path)
+
+        ffmpeg.run(stream) 
+        print(f"Grayscale compressed image saved to: {output_path}")
 
 # following the example from class, we apply RLE to compress zero runs only
 
@@ -151,15 +153,7 @@ class DWTTools:
         return pywt.idwt2(coeffs, 'haar')
 
 
-# TESTING EXERCISE 2
-R, G, B = 100, 150, 200
-print("RGB:", (R, G, B))
 
-y, u, v = ColorCoordsConverter.rgb_to_yuv(R, G, B)
-print("YUV:", (y, u, v))
-
-r2, g2, b2 = ColorCoordsConverter.yuv_to_rgb(y, u, v)
-print("Back to RGB:", (r2, g2, b2))
 
 
 # TESTING EXERCISE 3
