@@ -1,0 +1,2 @@
+fastapi
+uvicorn #web server that will run the FastAPI app
