@@ -23,15 +23,28 @@ We obtained the following response from the running container:
 ![alt text](img_t2.png)
 ![alt text](img_t2.1.png)
 
-**Task 3: Include all your previous work inside the new API. Use the help of any AI tool to adapt the code and the unit tests**
+**Task 3 and 4:**
+**Include all your previous work inside the new API. Use the help of any AI tool to adapt the code and the unit tests.**
+**Create at least 2 endpoints which will process some actions from the previous S1**
 To do so, we started by creating a new file inside the P1 folder called routes.py, and we duplicated the file first_seminar.py inside the same folder.
 
 We imported the functions from first_seminar into the routes.py file and created FastAPI endpoints for each operation.
 
-Next, we imported the router into the practice1 file (the main API file) to ensure that all endpoints were activated at once.
-After that, we rebuilt and ran the Docker container. We obtained the following active endpoints in our local host browser under /docs (http://localhost:8000/docs):
+
+Next, we imported the router into the practice1 file (the main API file) to ensure that all endpoints were activated at once. After that, we rebuilt and ran the Docker container. We obtained the following active endpoints in our local host browser under /docs (http://localhost:8000/docs):
 
 ![alt text](img_t3.png)
-![alt text](img_t3.1.png)
 
-For the test 
+Among these endpoints, we specifically verified that the /rgb-to-yuv and /yuv-to-rgb endpoints processed correctly the actions from the previous S1 and we checked they worked correctly through API tests using FastAPI’s TestClient.
+
+![alt text](img_t3.1.png)
+![alt text](img_t3.2.png)
+
+**Testing**
+To ensure that the API and the original Seminar 1 functions work correctly, we created two sets of tests:
+- test_api.py: We serached online how to create tests for the API endpoints we created in routes.py. This file uses FastAPI’s TestClient to simulate HTTP requests without running the server. It checks that endpoints such as /rgb-to-yuv, /yuv-to-rgb, and /rle respond with the correct status codes and return the expected JSON structure.
+These tests validate that the API correctly wraps and executes the original S1 functions.
+
+- test_seminar1.py (from S1)
+Contains the original unit tests for functions from first_seminar.py.
+Confirms that the core computational logic is still correct after integrating it into the new API project.
