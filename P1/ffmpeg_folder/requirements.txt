@@ -1,9 +1,4 @@
 fastapi
 uvicorn #web server that will run the FastAPI app
-ffmpeg-python
-numpy
-pillow
-scipy
-pywavelets
-python-multipart
 requests
+python-multipart

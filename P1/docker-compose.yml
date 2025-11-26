@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: api-service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - ffmpeg-service
+
+  ffmpeg-service:
+    build: ./ffmpeg_folder
+    container_name: ffmpeg-service
+    ports:
+      - "9000:9000"

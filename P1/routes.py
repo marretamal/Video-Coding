@@ -1,4 +1,6 @@
 from fastapi import APIRouter, UploadFile, File
+import requests
+
 from first_seminar import (
     ColorCoordsConverter,
     FFmpeg,
@@ -15,6 +17,8 @@ import os
 
 router = APIRouter()
 
+FFMPEG_URL = "http://ffmpeg-service:9000"
+
 @router.get("/rgb-to-yuv")
 def rgb_to_yuv(r: int, g: int, b: int):
     y, u, v = ColorCoordsConverter.rgb_to_yuv(r, g, b)
@@ -27,14 +31,16 @@ def yuv_to_rgb(y: float, u: float, v: float):
 
 @router.post("/resize-image")
 async def resize_image(file: UploadFile = File(...), width: int = 320, height: int = 240):
-    src = tempfile.NamedTemporaryFile(delete=False)
-    src.write(await file.read())
-    src.close()
 
-    out_path = src.name + "_resized.png"
-    FFmpeg.resize_image(src.name, width, height, out_path)
+    files = {"file": (file.filename, await file.read(), file.content_type)}
 
-    return {"output_file": os.path.basename(out_path)}
+    response = requests.post(
+        f"{FFMPEG_URL}/resize",
+        params={"width": width, "height": height},
+        files=files
+    )
+
+    return response.json()
 
 @router.post("/serpentine")
 async def serpentine_endpoint(file: UploadFile = File(...)):
@@ -48,14 +54,15 @@ async def serpentine_endpoint(file: UploadFile = File(...)):
 
 @router.post("/compress-grayscale")
 async def grayscale_compress(file: UploadFile = File(...)):
-    src = tempfile.NamedTemporaryFile(delete=False)
-    src.write(await file.read())
-    src.close()
 
-    out_path = src.name + "_gray.jpg"
-    compress_to_grayscale(src.name, out_path)
+    files = {"file": (file.filename, await file.read(), file.content_type)}
 
-    return {"output_file": os.path.basename(out_path)}
+    response = requests.post(
+        f"{FFMPEG_URL}/grayscale",
+        files=files
+    )
+
+    return response.json()
 
 
 @router.post("/rle")
