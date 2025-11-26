@@ -48,3 +48,25 @@ These tests validate that the API correctly wraps and executes the original S1 f
 - test_seminar1.py (from S1)
 Contains the original unit tests for functions from first_seminar.py.
 Confirms that the core computational logic is still correct after integrating it into the new API project.
+
+
+**Task 5: Docker compose**
+
+The goal of this task was to run two different containers: an API container and a separate FFmpeg container. 
+
+We created a docker-compose.yml that starts both services. The API is available on http://localhost:8000 and the FFmpeg is available at http://localhost:9000. Moreover, we modified our API endpoints (routes.py) so that resize and grayscale operations that used FFmpeg now reach out to the FFmpeg container we have created with HTTP requests (for example, for the resize endpoint: "http://ffmpeg-service:9000/resize"). 
+
+Once we build the docker-compose (docker-compose up --build) we can see that both containers have been created correctly and can be seen in docker desktop.
+<img width="1223" height="495" alt="image" src="https://github.com/user-attachments/assets/ae4f4dd7-e3cf-487f-8f83-e4b9d5e009fd" />
+
+In the api service we test the resize image to see if it resorts to the ffmpeg docker container. 
+<img width="1166" height="1089" alt="image" src="https://github.com/user-attachments/assets/6620fad6-c8e6-47c4-b84a-3071c444a8d8" />
+
+Indeed, the screenshot below confirms that the API received /resize-image and forwarded the request to the FFmpeg service, which returned OK. So the API and FFmpeg containers communicate correctly inside Docker
+<img width="899" height="297" alt="image" src="https://github.com/user-attachments/assets/3f8fdd18-af5b-454a-899a-f78f2b947ba8" />
+
+
+
+
+
+
