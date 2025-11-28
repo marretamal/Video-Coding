@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import StreamingResponse
 import requests
+import io
 
 from first_seminar import (
     ColorCoordsConverter,
@@ -19,6 +20,25 @@ import os
 router = APIRouter()
 
 FFMPEG_URL = "http://ffmpeg-service:9000/resize-video"
+
+@router.post("/process-chroma")
+async def process_chroma(
+    file: UploadFile = File(...),
+    format: str = "420"  # default to 420 (yuv420p)
+):
+    files = {"file": (file.filename, await file.read(), file.content_type)}
+    params = {"format": format}
+
+    # send the video to the ffmpeg-service for processing
+    r = requests.post("http://ffmpeg-service:9000/chroma-subsample", files=files, params=params)
+
+    # return the processed video
+    return StreamingResponse(
+        io.BytesIO(r.content),  
+        media_type="video/mp4",
+        headers={"Content-Disposition": f"attachment; filename=subsampled_video_{format}.mp4"}
+    )
+
 
 @router.post("/process-video")
 async def process_video(
