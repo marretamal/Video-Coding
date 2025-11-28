@@ -1,4 +1,5 @@
 **Task 1: Create a new endpoint / feature which will let you to modify the resolution (use FFmpeg in the backend)**
+
 For this task we have started by creating two new endpoints: 
 - In ffmpeg_service.py (inside S2): /resize-video -> FFmpeg resizes the video and returns the output file (default resizing is 640×360)
 - In routes.py (API service, inside S2): /process-video -> Accepts upload, calls FFmpeg service, returns the video to the user
@@ -12,6 +13,7 @@ We obtained the video resized as showed in the following image:
 <img width="1002" height="783" alt="image" src="https://github.com/user-attachments/assets/eae31f74-7b45-4c18-82f1-264ff40ee4f4" />
 
 **Task 2: Create a new endpoint / feature which will let you to modify the chroma subsampling**
+
 Chroma subsampling is a video compression technique that reduces the amount of color information (chrominance), while maintaining the luminance (brightness) resolution. 
 
 Common chroma subsampling schemes that we have applied are:
