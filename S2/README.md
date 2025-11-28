@@ -12,3 +12,21 @@ We obtained the video resized as showed in the following image:
 <img width="1002" height="783" alt="image" src="https://github.com/user-attachments/assets/eae31f74-7b45-4c18-82f1-264ff40ee4f4" />
 
 **Task 2: Create a new endpoint / feature which will let you to modify the chroma subsampling**
+Chroma subsampling is a video compression technique that reduces the amount of color information (chrominance), while maintaining the luminance (brightness) resolution. 
+
+Common chroma subsampling schemes that we have applied are:
+* 4:4:4: No chroma subsampling (full color).
+* 4:2:2: Horizontal chroma subsampling (resolution is halved horizontally, so that every two adjacent pixels will share the same color data). 
+* 4:2:0: Both horizontal and vertical chroma subsampling. This reduces the chroma resolution by half in both directions (most common format used for video compression).
+In both cases, the reduction in chroma resolution is not that noticeable to the human eye, especially if the quality of the video is not that high. 
+
+To test the functionality, we called the /process-chroma endpoint, uploaded a video, and specified the chroma subsampling format as a parameter. 
+<img width="1075" height="180" alt="image" src="https://github.com/user-attachments/assets/43eb871f-8084-4d6e-9d0a-2db2f733b1d6" />
+<img width="912" height="877" alt="image" src="https://github.com/user-attachments/assets/5cee27da-d9d1-484f-bea2-ee9fdd6fcd2e" />
+
+
+
+
+
+
+
