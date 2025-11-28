@@ -2,9 +2,36 @@ from fastapi import FastAPI, UploadFile, File
 import tempfile
 import subprocess
 import os
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 
 app = FastAPI()
+
+@app.post("/video-info")
+async def video_info(file: UploadFile = File(...)):
+    src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    src.write(await file.read())
+    src.close()
+
+    # run ffprobe to get video info
+    cmd = [
+        "ffprobe", "-v", "error", "-select_streams", "v:0", 
+        "-show_entries", "stream=codec_name,width,height,r_frame_rate,bit_rate,duration", 
+        "-of", "default=noprint_wrappers=1", src.name
+    ]
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # pass the output into a dictionary
+    output = result.stdout.decode("utf-8").splitlines()
+    video_info = {}
+    
+    for line in output:
+        key, value = line.split("=")
+        video_info[key] = value
+
+    # Return the relevant video information
+    return JSONResponse(content=video_info)
+
 
 @app.post("/chroma-subsample")
 async def chroma_subsample(
@@ -61,18 +88,23 @@ async def resize_video(
         "-i", src.name,
         "-vf", f"scale={width}:{height}",
         "-preset", "fast",
-        "-crf", "23",
+        "-crf", "23", # quality/compression default value
         out_path
     ]
 
-    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result=subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # resized video as a downloadable file
-    return StreamingResponse(
-        open(out_path, "rb"),
-        media_type="video/mp4",
-        headers={"Content-Disposition": f"attachment; filename=resized_video.mp4"}
-    )
+    # return StreamingResponse(
+    #     open(out_path, "rb"),
+    #     media_type="video/mp4",
+    #     headers={"Content-Disposition": f"attachment; filename=resized_video.mp4"}
+    # )
+    if result.returncode != 0:
+        return {"error": f"FFmpeg failed: {result.stderr.decode()}"}
+
+    # If successful, return the file path
+    return {"output_file": out_path}
 
 @app.post("/resize")
 async def resize(file: UploadFile = File(...), width: int = 320, height: int = 240):

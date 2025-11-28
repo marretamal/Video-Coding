@@ -1,42 +1,72 @@
 from fastapi import APIRouter, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 import requests
-import io
-
-from first_seminar import (
-    ColorCoordsConverter,
-    FFmpeg,
-    serpentine,
-    compress_to_grayscale,
-    run_length_encoding_zeros,
-    DCTTools,
-    DWTTools
-)
-import numpy as np
-from PIL import Image
 import tempfile
 import os
+import subprocess
+from io import BytesIO
 
 router = APIRouter()
 
-FFMPEG_URL = "http://ffmpeg-service:9000/resize-video"
+FFMPEG_URL = "http://ffmpeg-service:9000" 
+
+@router.post("/process-video-info")
+async def process_video_info(file: UploadFile = File(...)):
+    # Save the uploaded video temporarily
+    src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    src.write(await file.read())
+    src.close()
+
+    # Run ffprobe to extract video info
+    cmd = [
+        "ffprobe", "-v", "error", "-select_streams", "v:0",
+        "-show_entries", "stream=codec_name,width,height,r_frame_rate,bit_rate,duration",
+        "-of", "default=noprint_wrappers=1", src.name
+    ]
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Parse output into a dictionary
+    output = result.stdout.decode("utf-8").splitlines()
+    video_info = {}
+    for line in output:
+        key, value = line.split("=")
+        video_info[key] = value
+
+    return JSONResponse(content=video_info)
+
 
 @router.post("/process-chroma")
-async def process_chroma(
-    file: UploadFile = File(...),
-    format: str = "420"  # default to 420 (yuv420p)
-):
+async def process_chroma(file: UploadFile = File(...), format: str = "420"):
+    # Ensure the format is correct
+    if format not in ["420", "422", "444"]:
+        return {"error": "Invalid subsampling format. Use 420, 422, or 444."}
+
     files = {"file": (file.filename, await file.read(), file.content_type)}
     params = {"format": format}
 
-    # send the video to the ffmpeg-service for processing
-    r = requests.post("http://ffmpeg-service:9000/chroma-subsample", files=files, params=params)
+    # Call the FFmpeg service for chroma subsampling
+    r = requests.post(f"{FFMPEG_URL}/chroma-subsample", files=files, params=params)
 
-    # return the processed video
     return StreamingResponse(
-        io.BytesIO(r.content),  
+        BytesIO(r.content),  
         media_type="video/mp4",
         headers={"Content-Disposition": f"attachment; filename=subsampled_video_{format}.mp4"}
+    )
+
+
+@router.post("/resize-video")
+async def resize_video(file: UploadFile = File(...), width: int = 640, height: int = 360):
+    files = {"file": (file.filename, await file.read(), file.content_type)}
+    params = {"width": width, "height": height}
+
+    # Call the FFmpeg service for resizing
+    r = requests.post(f"{FFMPEG_URL}/resize-video", files=files, params=params)
+
+    return StreamingResponse(
+        BytesIO(r.content),
+        media_type="video/mp4",
+        headers={"Content-Disposition": "attachment; filename=resized_video.mp4"}
     )
 
 
