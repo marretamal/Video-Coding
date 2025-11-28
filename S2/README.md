@@ -42,3 +42,19 @@ This indicates the video information such that:
 * r_frame_rate: The frame rate of the video (30 frames per second).
 * duration: The duration of the video (634.566667 seconds).
 * bit_rate: The bit rate of the video (227570).
+
+**Task 4**
+
+To complete this task, we followed these steps (code that we implemented in ffmpeg_service.py): 
+1. Save the uploaded file: We temporarily save the uploaded BBB video using NamedTemporaryFile.
+2. Cut the video to 20 seconds: We use FFmpeg with -t 00:00:20 to trim the video to a 20-second segment.
+3. Extract and convert audio to different formats: AAC (mono) using the -ac 1 flag for mono audio. MP3 (stereo with lower bitrate)using -ac 2 for stereo and a 96k bitrate for compression. AC3 using the ac3 codec.
+4. Combine video and audio: We use FFmpeg to combine the video and the three audio streams (AAC, MP3, AC3) into one .mp4 file using the -map option to specify which streams to use.
+5. Return the final video: The processed .mp4 file is returned as a FileResponse. 
+
+When downloading the resulting processed video, we can see that it is in fact 20 seconds long and inspecting its characteristics using ffprobe we can see that it actually has 3 different audio streams (aac, mp3, ac3). 
+
+<img width="798" height="618" alt="image" src="https://github.com/user-attachments/assets/fe547a68-d1e2-45b0-8593-258c00f75f4f" />
+<img width="796" height="495" alt="image" src="https://github.com/user-attachments/assets/e9b51eba-73a1-45fb-9e00-2b9d9a910ff1" />
+
+
