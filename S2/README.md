@@ -27,8 +27,18 @@ To test the functionality, we called the /process-chroma endpoint, uploaded a vi
 <img width="912" height="877" alt="image" src="https://github.com/user-attachments/assets/5cee27da-d9d1-484f-bea2-ee9fdd6fcd2e" />
 
 
+**Task 3: Create a new endpoint / feature which lets you read the video info and print at least 5 relevant data from the video**
 
+We modified the ffmpeg_service.py to create a new endpoint /video-info that extracts and returns the video information using FFmpeg.
 
+Moreover, we found that the ffprobe command can give us detailed metadata about a video. We use it to return 5 characteristics of the video: Video codec, Resolution, Duration, Bitrate, Frame rate. The output is parsed into a dictionary and returned as a JSONResponse. 
 
+When testing the endpoint with the Big Buck Bunny video we obtained the following result:
+<img width="981" height="285" alt="image" src="https://github.com/user-attachments/assets/ee825826-0df0-4ba8-a32c-6ca4da75b641" />
 
-
+This indicates the video information such that: 
+* codec_name: The codec used for the video (in this case, h264).
+* width and height: The resolution of the video (640x360).
+* r_frame_rate: The frame rate of the video (30 frames per second).
+* duration: The duration of the video (634.566667 seconds).
+* bit_rate: The bit rate of the video (227570).
