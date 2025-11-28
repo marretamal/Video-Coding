@@ -5,6 +5,18 @@ import tempfile
 import os
 import subprocess
 from io import BytesIO
+import numpy as np
+from PIL import Image
+
+from first_seminar import (
+    ColorCoordsConverter,
+    FFmpeg,
+    serpentine,
+    compress_to_grayscale,
+    run_length_encoding_zeros,
+    DCTTools,
+    DWTTools
+)
 
 router = APIRouter()
 
@@ -12,12 +24,11 @@ FFMPEG_URL = "http://ffmpeg-service:9000"
 
 @router.post("/process-video-info")
 async def process_video_info(file: UploadFile = File(...)):
-    # Save the uploaded video temporarily
     src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
     src.write(await file.read())
     src.close()
 
-    # Run ffprobe to extract video info
+    # ffprobe to extract video info
     cmd = [
         "ffprobe", "-v", "error", "-select_streams", "v:0",
         "-show_entries", "stream=codec_name,width,height,r_frame_rate,bit_rate,duration",
@@ -26,7 +37,6 @@ async def process_video_info(file: UploadFile = File(...)):
 
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    # Parse output into a dictionary
     output = result.stdout.decode("utf-8").splitlines()
     video_info = {}
     for line in output:
@@ -38,14 +48,14 @@ async def process_video_info(file: UploadFile = File(...)):
 
 @router.post("/process-chroma")
 async def process_chroma(file: UploadFile = File(...), format: str = "420"):
-    # Ensure the format is correct
+
     if format not in ["420", "422", "444"]:
         return {"error": "Invalid subsampling format. Use 420, 422, or 444."}
 
     files = {"file": (file.filename, await file.read(), file.content_type)}
     params = {"format": format}
 
-    # Call the FFmpeg service for chroma subsampling
+    # FFmpeg service for chroma subsampling
     r = requests.post(f"{FFMPEG_URL}/chroma-subsample", files=files, params=params)
 
     return StreamingResponse(
@@ -60,7 +70,7 @@ async def resize_video(file: UploadFile = File(...), width: int = 640, height: i
     files = {"file": (file.filename, await file.read(), file.content_type)}
     params = {"width": width, "height": height}
 
-    # Call the FFmpeg service for resizing
+    # FFmpeg service for resizing
     r = requests.post(f"{FFMPEG_URL}/resize-video", files=files, params=params)
 
     return StreamingResponse(
