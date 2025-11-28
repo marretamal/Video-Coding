@@ -43,6 +43,7 @@ This indicates the video information such that:
 * duration: The duration of the video (634.566667 seconds).
 * bit_rate: The bit rate of the video (227570).
 
+
 **Task 4**
 
 To complete this task, we followed these steps (code that we implemented in ffmpeg_service.py): 
