@@ -6,6 +6,55 @@ from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 
 app = FastAPI()
 
+@app.post("/process-bbb")
+async def process_bbb(file: UploadFile = File(...)):
+    # Save the uploaded video temporarily
+    src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    src.write(await file.read())
+    src.close()
+
+    video_path = src.name
+
+    # cut the video to 20 seconds
+    cut_video_path = video_path.replace(".mp4", "_20s.mp4")
+    cmd_cut = [
+        "ffmpeg", "-y", "-i", video_path, "-t", "00:00:20", "-c", "copy", cut_video_path
+    ]
+    subprocess.run(cmd_cut, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # export audio as AAC (mono)
+    audio_aac_path = video_path.replace(".mp4", "_audio_aac_mono.aac")
+    cmd_aac = [
+        "ffmpeg", "-y", "-i", cut_video_path, "-vn", "-acodec", "aac", "-ac", "1", audio_aac_path
+    ]
+    subprocess.run(cmd_aac, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # export audio as MP3 
+    audio_mp3_path = video_path.replace(".mp4", "_audio_mp3_stereo.mp3")
+    cmd_mp3 = [
+        "ffmpeg", "-y", "-i", cut_video_path, "-vn", "-acodec", "libmp3lame", "-ac", "2", "-ab", "96k", audio_mp3_path
+    ]
+    subprocess.run(cmd_mp3, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # export audio as AC3
+    audio_ac3_path = video_path.replace(".mp4", "_audio_ac3.ac3")
+    cmd_ac3 = [
+        "ffmpeg", "-y", "-i", cut_video_path, "-vn", "-acodec", "ac3", audio_ac3_path
+    ]
+    subprocess.run(cmd_ac3, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # combine the video and all audio into a single .mp4
+    output_video_path = video_path.replace(".mp4", "_final.mp4")
+    cmd_combine = [
+        "ffmpeg", "-y", "-i", cut_video_path, "-i", audio_aac_path, "-i", audio_mp3_path, "-i", audio_ac3_path,
+        "-map", "0:v:0", "-map", "1:a:0", "-map", "2:a:0", "-map", "3:a:0", "-c:v", "libx264", "-c:a", "aac",
+        "-c:a:1", "libmp3lame", "-c:a:2", "ac3", "-shortest", output_video_path
+    ]
+    subprocess.run(cmd_combine, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Return the processed video file
+    return FileResponse(output_video_path, media_type="video/mp4", filename="processed_bbb.mp4")
+
 @app.post("/video-info")
 async def video_info(file: UploadFile = File(...)):
     src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")

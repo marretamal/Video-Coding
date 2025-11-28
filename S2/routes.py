@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 import requests
 import tempfile
 import os
@@ -21,6 +21,23 @@ from first_seminar import (
 router = APIRouter()
 
 FFMPEG_URL = "http://ffmpeg-service:9000" 
+
+@router.post("/process-bbb")
+async def process_bbb(file: UploadFile = File(...)):
+    # pass the video file to the ffmpeg service for processing
+    files = {"file": (file.filename, await file.read(), file.content_type)}
+    
+    # send POST request to ffmpeg-service for video processing
+    r = requests.post(f"{FFMPEG_URL}/process-bbb", files=files)
+
+    # return the processed video
+    return StreamingResponse(
+        BytesIO(r.content),
+        media_type="video/mp4",
+        headers={"Content-Disposition": "attachment; filename=processed_bbb.mp4"}
+    )
+
+
 
 @router.post("/process-video-info")
 async def process_video_info(file: UploadFile = File(...)):
