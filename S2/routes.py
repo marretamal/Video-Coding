@@ -22,6 +22,28 @@ router = APIRouter()
 
 FFMPEG_URL = "http://ffmpeg-service:9000" 
 
+@router.post("/motion-vectors")
+async def motion_vectors_api(file: UploadFile = File(...)):
+    files = {"file": (file.filename, await file.read(), file.content_type)}
+
+    r = requests.post(f"{FFMPEG_URL}/motion-vectors", files=files)
+
+    return StreamingResponse(
+        BytesIO(r.content),
+        media_type="video/mp4",
+        headers={"Content-Disposition": "attachment; filename=motion_vectors.mp4"}
+    )
+
+
+@router.post("/track-count")
+async def track_count(file: UploadFile = File(...)):
+    files = {"file": (file.filename, await file.read(), file.content_type)}
+
+    r = requests.post(f"{FFMPEG_URL}/count-tracks", files=files)
+
+    return JSONResponse(content=r.json())
+
+
 @router.post("/process-bbb")
 async def process_bbb(file: UploadFile = File(...)):
     # pass the video file to the ffmpeg service for processing

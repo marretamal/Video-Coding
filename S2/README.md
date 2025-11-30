@@ -58,4 +58,3 @@ When downloading the resulting processed video, we can see that it is in fact 20
 <img width="798" height="618" alt="image" src="https://github.com/user-attachments/assets/fe547a68-d1e2-45b0-8593-258c00f75f4f" />
 <img width="796" height="495" alt="image" src="https://github.com/user-attachments/assets/e9b51eba-73a1-45fb-9e00-2b9d9a910ff1" />
 
-

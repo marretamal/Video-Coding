@@ -5,6 +5,72 @@ import os
 from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 
 app = FastAPI()
+@app.post("/motion-vectors")
+async def motion_vectors(file: UploadFile = File(...)):
+    # Save uploaded video
+    src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    src.write(await file.read())
+    src.close()
+
+    out_path = src.name.replace(".mp4", "_motionvec.mp4")
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-flags2", "+export_mvs",          # Enable motion vector export
+        "-i", src.name,
+        "-vf", "codecview=mv=pf+bf+bb",   # Visualize vectors
+        "-c:v", "libx264",                # Must re-encode using h264
+        "-preset", "fast",
+        "-crf", "18",                     # Good quality
+        out_path
+    ]
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    if result.returncode != 0:
+        return {"error": result.stderr.decode()}
+
+    return FileResponse(
+        out_path,
+        media_type="video/mp4",
+        filename="motion_vectors.mp4"
+    )
+
+
+
+@app.post("/count-tracks")
+async def count_tracks(file: UploadFile = File(...)):
+    # Save the uploaded MP4 temporarily
+    src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    src.write(await file.read())
+    src.close()
+
+    # ffprobe: extract all streams (audio/video/subtitle/etc.)
+    cmd = [
+        "ffprobe", "-v", "error",
+        "-show_entries", "stream=index,codec_type",
+        "-of", "json",
+        src.name
+    ]
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    import json
+    info = json.loads(result.stdout.decode("utf-8"))
+
+    streams = info.get("streams", [])
+
+    video_tracks = sum(1 for s in streams if s.get("codec_type") == "video")
+    audio_tracks = sum(1 for s in streams if s.get("codec_type") == "audio")
+    subtitle_tracks = sum(1 for s in streams if s.get("codec_type") == "subtitle")
+
+    return {
+        "total_tracks": len(streams),
+        "video_tracks": video_tracks,
+        "audio_tracks": audio_tracks,
+        "subtitle_tracks": subtitle_tracks
+    }
+
 
 @app.post("/process-bbb")
 async def process_bbb(file: UploadFile = File(...)):
