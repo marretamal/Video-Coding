@@ -7,6 +7,7 @@ import subprocess
 from io import BytesIO
 import numpy as np
 from PIL import Image
+import zipfile
 
 from first_seminar import (
     ColorCoordsConverter,
@@ -23,15 +24,59 @@ router = APIRouter()
 FFMPEG_URL = "http://ffmpeg-service:9000" 
 TRANSCODE_URL = f"{FFMPEG_URL}/transcode"
 
+@router.post("/encoding-ladder")
+async def encoding_ladder(file: UploadFile = File(...)):
+    src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    src.write(await file.read())
+    src.close()
+
+    input_path = src.name
+
+    #encoding ladder resolutions we have chosen
+    ladder = [
+        {"width": 426, "height": 240},
+        {"width": 640, "height": 360},
+        {"width": 854, "height": 480},
+        {"width": 1280, "height": 720},
+        {"width": 1920, "height": 1080},
+    ]
+
+    # prepare an in-memory ZIP file
+    zip_buffer = BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, "w") as zipf:
+        for step in ladder:
+            w = step["width"]
+            h = step["height"]
+
+            # request to ffmpeg-service
+            r = requests.post(
+                "http://ffmpeg-service:9000/resize-video",
+                files={"file": (file.filename, open(input_path, "rb"), "video/mp4")},
+                params={"width": w, "height": h}
+            )
+
+            # save each output into the ZIP
+            filename = f"video_{w}x{h}.mp4"
+            zipf.writestr(filename, r.content)
+
+    zip_buffer.seek(0)
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": "attachment; filename=encoding_ladder.zip"
+        }
+    )
+
+
 @router.post("/transcode-video")
 async def transcode_video_api(
     file: UploadFile = File(...),
     codec: str = "vp8"   # vp8, vp9, h265, av1
 ):
-    """
-    Front-end endpoint: receives a video and a target codec,
-    sends it to ffmpeg-service /transcode, and returns the result.
-    """
+   
     codec = codec.lower()
 
     if codec not in ["vp8", "vp9", "h265", "av1"]:
@@ -44,13 +89,6 @@ async def transcode_video_api(
     params = {"codec": codec}
 
     r = requests.post(TRANSCODE_URL, files=files, params=params)
-
-    if r.status_code != 200:
-        # Forward error from ffmpeg-service
-        return JSONResponse(
-            {"error": "Transcoding failed in ffmpeg-service", "details": r.text},
-            status_code=r.status_code,
-        )
 
     ext_map = {
         "vp8": (".webm", "video/webm"),

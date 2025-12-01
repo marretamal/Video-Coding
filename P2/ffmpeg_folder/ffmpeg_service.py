@@ -14,14 +14,13 @@ async def transcode_video(
 ):
     codec = codec.lower()
 
-    # Validate codec
     if codec not in ["vp8", "vp9", "h265", "av1"]:
         return JSONResponse(
             {"error": "Invalid codec. Use one of: vp8, vp9, h265, av1."},
             status_code=400
         )
 
-    # Decide container/extension and media type depending on codec
+    # decide container and media type depending on codec
     ext_map = {
         "vp8": (".webm", "video/webm"),
         "vp9": (".webm", "video/webm"),
@@ -30,14 +29,14 @@ async def transcode_video(
     }
     out_ext, mime_type = ext_map[codec]
 
-    # Save uploaded video to a temp file
+    # save uploaded video to a temp file
     src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
     src.write(await file.read())
     src.close()
 
     out_path = src.name + f"_{codec}{out_ext}"
 
-    # Build ffmpeg command per codec
+    # build ffmpeg command per codec
     if codec == "vp8":
         cmd = [
             "ffmpeg", "-y",
@@ -77,7 +76,6 @@ async def transcode_video(
             out_path,
         ]
 
-    # Run ffmpeg
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if result.returncode != 0:
@@ -89,7 +87,6 @@ async def transcode_video(
             status_code=500,
         )
 
-    # Return the transcoded file
     return FileResponse(
         out_path,
         media_type=mime_type,
