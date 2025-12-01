@@ -58,3 +58,48 @@ When downloading the resulting processed video, we can see that it is in fact 20
 <img width="798" height="618" alt="image" src="https://github.com/user-attachments/assets/fe547a68-d1e2-45b0-8593-258c00f75f4f" />
 <img width="796" height="495" alt="image" src="https://github.com/user-attachments/assets/e9b51eba-73a1-45fb-9e00-2b9d9a910ff1" />
 
+**Task 5**
+
+For this task we implemented the track-count logic inside the FFmpeg service and the corresponding endpoint in the main API. For the track -count logic we run ffprobe on the uploaded file, read all the streams inside the MP4 container, count how many are video/audio/subtitle tracks, and return the totals.
+Here’s the result obtained when testing the endpoint with the Big Buck Bunny video:
+
+<img width="770" height="499" alt="Screenshot 2025-12-01 at 14 26 38" src="https://github.com/user-attachments/assets/74c65431-cffa-412f-a064-2d31f6ecb246" />
+
+
+**Task 6**
+
+To visualize macroblocks and motion vectors, FFmpeg provides the following debugging filter:
+-vf codecview=mv=pf+bf+bb
+
+This filter draws:
+* pf — forward predicted motion vectors
+* bf — backward motion vectors
+* bb — bidirectional motion vectors
+* Macroblock boundaries are visible because codecview outlines them.
+
+For this task, the endpoint implementation consisted of the following steps:
+1. Save the uploaded video temporarily, so FFmpeg can access it.
+2. Use the FFmpeg flag:
+* -flags2 +export_mvs
+This tells FFmpeg to export motion vectors for visualization.
+3. Apply the video filter:
+* -vf codecview=mv=pf+bf+bb
+This overlays the motion vectors on the video.
+4. Return the processed video as the endpoint response so the user can download or view it.
+
+
+**Task 7**
+
+FFmpeg already has a built-in filter for generating a YUV histogram video: the histogram filter. 
+
+We created a new FastAPI endpoint in ffmpeg_service.py that accepts a video upload: Runs FFmpeg to generate a histogram video and returns the new MP4 file. Then, the API gateway (routes.py) forwards the video like the other endpoints.
+
+For the ffmpeg_service.py endpoint:
+* -vf histogram,format=yuv420p  applies the histogram filter and converts the video to a playable YUV420p format
+* -c:v libx264 encodes the video using the H.264 codec
+
+For the routes.py endpoint, the output video shows three stacked histograms, one for each channel (Y, U, and V) as the following image:
+
+<img width="614" height="914" alt="Screenshot 2025-12-01 at 12 06 34" src="https://github.com/user-attachments/assets/65c5e456-a211-4c72-a46d-9acde42b0b4b" />
+
+
