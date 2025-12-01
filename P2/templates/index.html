@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Transcoding GUI (P2)</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>🎬 Video Transcoding GUI</h1>
+
+<section class="panel">
+    <h2>1. Upload video</h2>
+    <input type="file" id="video-file" />
+    <p class="hint">Use Big Buck Bunny or any video file.</p>
+</section>
+
+<section class="panel">
+    <h2>2. Single Transcoding</h2>
+
+    <label for="codec-select">Choose codec:</label>
+    <select id="codec-select">
+        <option value="vp8">VP8</option>
+        <option value="vp9">VP9</option>
+        <option value="h265">H.265</option>
+        <option value="av1">AV1</option>
+    </select>
+
+    <button onclick="transcode()">Convert</button>
+</section>
+
+<section class="panel">
+    <h2>3. Encoding Ladder</h2>
+    <p class="hint">
+        This will generate multiple resolutions/bitrates using your
+        <code>/encoding-ladder</code> endpoint.
+    </p>
+    <button onclick="encodingLadder()">Run Encoding Ladder</button>
+</section>
+
+<section class="panel">
+    <h2>4. Video Info</h2>
+    <button onclick="videoInfo()">Get Video Info</button>
+</section>
+
+<section id="output" class="panel">
+    <h2>Output</h2>
+    <pre id="output-text">(results will appear here)</pre>
+</section>
+
+
+<script>
+function getFile() {
+    const input = document.getElementById("video-file");
+    if (!input.files.length) {
+        alert("Please select a video file first.");
+        return null;
+    }
+    return input.files[0];
+}
+
+async function transcode() {
+    const file = getFile();
+    if (!file) return;
+
+    const codec = document.getElementById("codec-select").value;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`/transcode?codec=${codec}`, {
+        method: "POST",
+        body: formData
+    });
+
+    if (!response.ok) {
+        document.getElementById("output-text").textContent =
+            "Error: " + response.status + " " + response.statusText;
+        return;
+    }
+
+    // Download resulting video
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `output_${codec}.webm`;  // or .mp4 depending on your implementation
+    a.click();
+    document.getElementById("output-text").textContent =
+        `Downloaded transcoded file with codec: ${codec}`;
+}
+
+async function encodingLadder() {
+    const file = getFile();
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`/encoding-ladder`, {
+        method: "POST",
+        body: formData
+    });
+
+    // Assuming your /encoding-ladder returns JSON (list of variants, bitrates, etc.)
+    const data = await response.json();
+    document.getElementById("output-text").textContent =
+        JSON.stringify(data, null, 4);
+}
+
+async function videoInfo() {
+    const file = getFile();
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`/process-video`, {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+    document.getElementById("output-text").textContent =
+        JSON.stringify(data, null, 4);
+}
+</script>
+
+</body>
+</html>

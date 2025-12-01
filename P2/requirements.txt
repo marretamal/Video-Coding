@@ -7,3 +7,4 @@ scipy
 pywavelets
 python-multipart
 requests
+jinja2 #templating engine for rendering HTML pages

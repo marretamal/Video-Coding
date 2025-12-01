@@ -1,15 +1,18 @@
-from fastapi import FastAPI, Request
-from routes import router
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from routes import router
 
 app = FastAPI()
-app.include_router(router)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 templates = Jinja2Templates(directory="templates")
 
-@app.get("/", include_in_schema=False)
-async def home (request: Request):
+app.include_router(router)
+
+from fastapi import Request
+
+@app.get("/")
+async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
