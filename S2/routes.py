@@ -22,17 +22,33 @@ router = APIRouter()
 
 FFMPEG_URL = "http://ffmpeg-service:9000" 
 
-@router.post("/motion-vectors")
-async def motion_vectors_api(file: UploadFile = File(...)):
+
+@router.post("/process-yuv-histogram")
+async def process_yuv_histogram(file: UploadFile = File(...)):
     files = {"file": (file.filename, await file.read(), file.content_type)}
+    r = requests.post(f"{FFMPEG_URL}/yuv-histogram", files=files)
 
+    if r.status_code != 200:
+        # forward error content (assumes JSON)
+        return StreamingResponse(BytesIO(r.content), status_code=r.status_code, media_type="application/json")
+
+    return StreamingResponse(
+        BytesIO(r.content),
+        media_type="video/mp4",
+        headers={"Content-Disposition": "attachment; filename=yuv_histogram.mp4"}
+    )
+
+
+@router.post("/motion-vectors")
+async def motion_vectors_endpoint(file: UploadFile = File(...)):
+    files = {"file": (file.filename, await file.read(), file.content_type)}
     r = requests.post(f"{FFMPEG_URL}/motion-vectors", files=files)
-
     return StreamingResponse(
         BytesIO(r.content),
         media_type="video/mp4",
         headers={"Content-Disposition": "attachment; filename=motion_vectors.mp4"}
     )
+
 
 
 @router.post("/track-count")

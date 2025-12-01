@@ -4,43 +4,89 @@ import subprocess
 import os
 from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 
+
 app = FastAPI()
-@app.post("/motion-vectors")
-async def motion_vectors(file: UploadFile = File(...)):
-    # Save uploaded video
+
+@app.post("/yuv-histogram")
+async def yuv_histogram(file: UploadFile = File(...)):
+    # Save uploaded video to a temporary file
     src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-    src.write(await file.read())
-    src.close()
+    try:
+        src.write(await file.read())
+    finally:
+        src.close()
 
-    out_path = src.name.replace(".mp4", "_motionvec.mp4")
+    output_path = src.name.replace(".mp4", "_yuv_hist.mp4")
 
+    # Simple FFmpeg command to generate the histogram visualization (YUV), produces a histogram image per frame
     cmd = [
-        "ffmpeg", "-y",
-        "-flags2", "+export_mvs",          # Enable motion vector export
+        "ffmpeg",
+        "-y",
         "-i", src.name,
-        "-vf", "codecview=mv=pf+bf+bb",   # Visualize vectors
-        "-c:v", "libx264",                # Must re-encode using h264
+        "-vf", "histogram,format=yuv420p",
+        "-c:v", "libx264",
         "-preset", "fast",
-        "-crf", "18",                     # Good quality
-        out_path
+        "-crf", "23",
+        output_path
     ]
 
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    if result.returncode != 0:
-        return {"error": result.stderr.decode()}
+    # Clean up source file
+    try:
+        os.remove(src.name)
+    except Exception:
+        pass
 
-    return FileResponse(
-        out_path,
-        media_type="video/mp4",
-        filename="motion_vectors.mp4"
-    )
+    if result.returncode != 0:
+        # Return FFmpeg stderr for debugging
+        return JSONResponse(status_code=500, content={
+            "error": "FFmpeg failed to generate histogram",
+            "ffmpeg_stderr": result.stderr.decode(errors="ignore")
+        })
+
+    return FileResponse(output_path, media_type="video/mp4", filename="yuv_histogram.mp4")
+
+
+@app.post("/motion-vectors")
+async def motion_vectors(file: UploadFile = File(...)):
+    # Save uploaded video to a temporary file
+    src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    src.write(await file.read())
+    src.close()
+    video_path = src.name
+
+    # Output video path
+    out_path = video_path.replace(".mp4", "_motion_vectors.mp4")
+
+    # FFmpeg command to visualize motion vectors
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-flags2", "+export_mvs",          # export motion vectors
+        "-i", video_path,
+        "-vf", "codecview=mv=pf+bf+bb",   # display motion vectors
+        "-preset", "fast",
+        out_path
+    ]
+
+    # Run FFmpeg
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        return {"error": f"FFmpeg failed: {result.stderr.decode()}"}
+
+    # Return the processed video
+    return FileResponse(out_path, media_type="video/mp4", filename="motion_vectors.mp4")
+
+
+
+
 
 
 
 @app.post("/count-tracks")
 async def count_tracks(file: UploadFile = File(...)):
-    # Save the uploaded MP4 temporarily
+    # Save uploaded video to a temporary file
     src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
     src.write(await file.read())
     src.close()
