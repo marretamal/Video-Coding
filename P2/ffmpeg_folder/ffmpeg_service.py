@@ -3,7 +3,7 @@ import tempfile
 import subprocess
 import os
 from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
-
+import json
 
 app = FastAPI()
 
@@ -170,12 +170,12 @@ async def grayscale(file: UploadFile = File(...)):
 
 @app.post("/video-info")
 async def video_info(file: UploadFile = File(...)):
-    # Save the input file
+    # Save the uploaded video
     src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
     src.write(await file.read())
     src.close()
 
-    # FFprobe command to extract metadata
+    # FFprobe command to extract raw json
     cmd = [
         "ffprobe",
         "-v", "quiet",
@@ -186,11 +186,33 @@ async def video_info(file: UploadFile = File(...)):
     ]
 
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
     if result.returncode != 0:
         return JSONResponse(
             {"error": "ffprobe failed", "details": result.stderr.decode()},
-            status_code=500
+            status_code=500,
         )
 
-    return JSONResponse(result.stdout.decode())
+    raw_info = result.stdout.decode()
+    info = json.loads(raw_info)
+
+    # The video stream is always the one where codec_type="video"
+    video_stream = None
+    for stream in info.get("streams", []):
+        if stream.get("codec_type") == "video":
+            video_stream = stream
+            break
+
+    if video_stream is None:
+        return JSONResponse({"error": "No video stream found"}, status_code=400)
+
+    # Extract only the fields you want
+    cleaned_info = {
+        "codec_name": video_stream.get("codec_name"),
+        "width": video_stream.get("width"),
+        "height": video_stream.get("height"),
+        "r_frame_rate": video_stream.get("r_frame_rate"),
+        "duration": info.get("format", {}).get("duration"),
+        "bit_rate": video_stream.get("bit_rate") or info.get("format", {}).get("bit_rate")
+    }
+
+    return JSONResponse(cleaned_info)
