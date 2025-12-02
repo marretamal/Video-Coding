@@ -1,105 +1,86 @@
-**Task 1: Create a new endpoint / feature which will let you to modify the resolution (use FFmpeg in the backend)**
+**Task 1**
 
-For this task we have started by creating two new endpoints: 
-- In ffmpeg_service.py (inside S2): /resize-video -> FFmpeg resizes the video and returns the output file (default resizing is 640×360)
-- In routes.py (API service, inside S2): /process-video -> Accepts upload, calls FFmpeg service, returns the video to the user
-Then we wrote the necessary code in docker-compose.yml and the requierements inside both API and ffmpeg folders.
+In this task, we created a new API endpoint that converts any input video into one of the following modern codecs: VP8, VP9, H.265 / HEVC and AV1.
+The transcoding is performed by the FFmpeg service running inside Docker, using the proper encoder for each format:
+- libvpx (VP8) → .webm
+- libvpx-vp9 (VP9) → .webm
+- libx265 (H.265) → .mp4
+- libaom-av1 (AV1) → .mkv
 
-We, then, builded the docker and visited the path, we tried the endpoint POST /process-video uploading the BigBuckBunny.mp4 and choosing a smaller size to lower the resolution of the video.
-<img width="835" height="787" alt="image" src="https://github.com/user-attachments/assets/a8786b6f-19b3-460f-a039-205cd6711f9f" />
-<img width="990" height="364" alt="image" src="https://github.com/user-attachments/assets/e9eba214-0ee7-46c1-ba2a-d1c2e0a497d9" />
+We have checked that it works correctly:
+<img width="1096" height="799" alt="image" src="https://github.com/user-attachments/assets/ac3372a5-f9f5-43e8-a00e-ff469b13168b" />
 
-We obtained the video resized as showed in the following image:
-<img width="1002" height="783" alt="image" src="https://github.com/user-attachments/assets/eae31f74-7b45-4c18-82f1-264ff40ee4f4" />
+Using ffprobe we checked the characteristics of the downloaded videos and we can see that in fact the conversions are done correctly:
+<img width="1085" height="416" alt="image" src="https://github.com/user-attachments/assets/1f672280-f641-4fc1-856c-10ef33c4df53" />
 
-**Task 2: Create a new endpoint / feature which will let you to modify the chroma subsampling**
+**Task 2** 
 
-Chroma subsampling is a video compression technique that reduces the amount of color information (chrominance), while maintaining the luminance (brightness) resolution. 
+In this task we implemented an encoding ladder which generates several versions of the same input video, each at a different resolution.
 
-Common chroma subsampling schemes that we have applied are:
-* 4:4:4: No chroma subsampling (full color).
-* 4:2:2: Horizontal chroma subsampling (resolution is halved horizontally, so that every two adjacent pixels will share the same color data). 
-* 4:2:0: Both horizontal and vertical chroma subsampling. This reduces the chroma resolution by half in both directions (most common format used for video compression).
-In both cases, the reduction in chroma resolution is not that noticeable to the human eye, especially if the quality of the video is not that high. 
+We have chosen to return the following output resolutions: 426x240, 640x360, 854x480, 1280x720, 1920x1080. For each resolution, the endpoint calls the previously created resize method (request to the ffmpeg-service), which performs video scaling and saves each output into a zip.
 
-To test the functionality, we called the /process-chroma endpoint, uploaded a video, and specified the chroma subsampling format as a parameter. 
-<img width="1075" height="180" alt="image" src="https://github.com/user-attachments/assets/43eb871f-8084-4d6e-9d0a-2db2f733b1d6" />
-<img width="912" height="877" alt="image" src="https://github.com/user-attachments/assets/5cee27da-d9d1-484f-bea2-ee9fdd6fcd2e" />
+<img width="931" height="1000" alt="image" src="https://github.com/user-attachments/assets/54445774-79de-4f50-98d8-6404b7891f5e" />
 
+When executing the endpoint we can see the several requests to the ffmpeg-service, one for each resolution:
+<img width="1121" height="578" alt="image" src="https://github.com/user-attachments/assets/cbd51fcc-21da-4d9b-8031-0c71fdc24da0" />
 
-**Task 3: Create a new endpoint / feature which lets you read the video info and print at least 5 relevant data from the video**
+The downloaded file is a zip called encoding_ladder.zip which contains the video with the different resolutions defined. 
+<img width="816" height="355" alt="image" src="https://github.com/user-attachments/assets/43cbc267-5dbb-49ad-bcfd-e85557b23cda" />
 
-We modified the ffmpeg_service.py to create a new endpoint /video-info that extracts and returns the video information using FFmpeg.
+**Task 3**
 
-Moreover, we found that the ffprobe command can give us detailed metadata about a video. We use it to return 5 characteristics of the video: Video codec, Resolution, Duration, Bitrate, Frame rate. The output is parsed into a dictionary and returned as a JSONResponse. 
+For the final part of the project, we implemented a simple web GUI that interacts with our FastAPI backend.
+The frontend webpage (templates/index.html) allows users to:
+- Upload a video file
+- Transcode it to another codec (selecting between VP8, VP9, H.265, or AV1)
+- Trigger encoding ladder generation
+- Analyze the video
+We also created a CSS file inside /static/ to improve the visual appearance.
+The GUI is integrated into FastAPI using Jinja2Templates for HTML rendering and StaticFiles for serving CSS.
 
-When testing the endpoint with the Big Buck Bunny video we obtained the following result:
-<img width="981" height="285" alt="image" src="https://github.com/user-attachments/assets/ee825826-0df0-4ba8-a32c-6ca4da75b641" />
+Explanation of the FastAPI setup:
+1. FastAPI app instance: app = FastAPI() creates the main application.
+2. Static files: app.mount("/static", ...) serves files like CSS or JS so the frontend can use them.
+3. Templates: Jinja2Templates(directory="templates") allows rendering HTML pages dynamically.
+4. API routes: app.include_router(router) imports additional routes from routes.py.
+5. Home route: The / endpoint renders index.html and passes the request object needed by Jinja2.
 
-This indicates the video information such that: 
-* codec_name: The codec used for the video (in this case, h264).
-* width and height: The resolution of the video (640x360).
-* r_frame_rate: The frame rate of the video (30 frames per second).
-* duration: The duration of the video (634.566667 seconds).
-* bit_rate: The bit rate of the video (227570).
+The GUI performs requests to our existing API endpoints: /transcode-video, /encoding-ladder, /resize-video and the API processes the videos with FFmpeg. 
 
+The processed result is returned directly to the GUI so the user can download it. The GUI becomes available at: http://localhost:8000
+Here’s our first version of the GUI:
+<img width="1072" height="1023" alt="image" src="https://github.com/user-attachments/assets/df303e17-15b0-415c-8db7-84cd3eec6b60" />
 
-**Task 4**
+**Task 4:**
 
-To complete this task, we followed these steps (code that we implemented in ffmpeg_service.py): 
-1. Save the uploaded file: We temporarily save the uploaded BBB video using NamedTemporaryFile.
-2. Cut the video to 20 seconds: We use FFmpeg with -t 00:00:20 to trim the video to a 20-second segment.
-3. Extract and convert audio to different formats: AAC (mono) using the -ac 1 flag for mono audio. MP3 (stereo with lower bitrate)using -ac 2 for stereo and a 96k bitrate for compression. AC3 using the ac3 codec.
-4. Combine video and audio: We use FFmpeg to combine the video and the three audio streams (AAC, MP3, AC3) into one .mp4 file using the -map option to specify which streams to use.
-5. Return the final video: The processed .mp4 file is returned as a FileResponse. 
+For this last task, using AI we did the following two implementations:
 
-When downloading the resulting processed video, we can see that it is in fact 20 seconds long and inspecting its characteristics using ffprobe we can see that it actually has 3 different audio streams (aac, mp3, ac3). 
+1. GUI Improvements: The original user interface was upgraded to a more fun, modern, and visually appealing GUI.
 
-<img width="798" height="618" alt="image" src="https://github.com/user-attachments/assets/fe547a68-d1e2-45b0-8593-258c00f75f4f" />
-<img width="796" height="495" alt="image" src="https://github.com/user-attachments/assets/e9b51eba-73a1-45fb-9e00-2b9d9a910ff1" />
+- A complete redesign of the HTML page, removing plain layout and adding a aesthetic structure.
+- Added a modern gradient background for a dynamic and creative visual experience.
+- Introduced Google Fonts (Poppins) for a fresh and fun typography style.
+- Added highlight (yellow) colors, shadows, soft edges, and improved spacing.
+- Added interactive buttons for better user engagement.
 
-**Task 5**
+All styling is done directly inside index.html.
 
-For this task we implemented the track-count logic inside the FFmpeg service and the corresponding endpoint in the main API. For the track -count logic we run ffprobe on the uploaded file, read all the streams inside the MP4 container, count how many are video/audio/subtitle tracks, and return the totals.
-Here’s the result obtained when testing the endpoint with the Big Buck Bunny video:
-
-<img width="770" height="499" alt="Screenshot 2025-12-01 at 14 26 38" src="https://github.com/user-attachments/assets/74c65431-cffa-412f-a064-2d31f6ecb246" />
-
-
-**Task 6**
-
-To visualize macroblocks and motion vectors, FFmpeg provides the following debugging filter:
--vf codecview=mv=pf+bf+bb
-
-This filter draws:
-* pf — forward predicted motion vectors
-* bf — backward motion vectors
-* bb — bidirectional motion vectors
-* Macroblock boundaries are visible because codecview outlines them.
-
-For this task, the endpoint implementation consisted of the following steps:
-1. Save the uploaded video temporarily, so FFmpeg can access it.
-2. Use the FFmpeg flag:
-* -flags2 +export_mvs
-This tells FFmpeg to export motion vectors for visualization.
-3. Apply the video filter:
-* -vf codecview=mv=pf+bf+bb
-This overlays the motion vectors on the video.
-4. Return the processed video as the endpoint response so the user can download or view it.
+Here’s our renovated interface:
+<img width="1112" height="1058" alt="image" src="https://github.com/user-attachments/assets/8ff3a384-c1b4-4199-ac29-aa76ae80f55e" />
 
 
-**Task 7**
+2. Unit Tests: To ensure that the API works correctly, we added a set of automated unit tests using pytest and FastAPI's TestClient.
 
-FFmpeg already has a built-in filter for generating a YUV histogram video: the histogram filter. 
+We created a file named test_api.py containing:
+- Tests for transcoding into VP8, VP9, H265
+- Test verifying the /encoding-ladder endpoint returns a ZIP file
 
-We created a new FastAPI endpoint in ffmpeg_service.py that accepts a video upload: Runs FFmpeg to generate a histogram video and returns the new MP4 file. Then, the API gateway (routes.py) forwards the video like the other endpoints.
+The tests require a small input video to run. Therefore, we added: test_files/sample.mp4.This file has been omitted in github since it was required not to upload any videos. 
 
-For the ffmpeg_service.py endpoint:
-* -vf histogram,format=yuv420p  applies the histogram filter and converts the video to a playable YUV420p format
-* -c:v libx264 encodes the video using the H.264 codec
+The output lists all passing and failing tests, ensuring that the backend behaves correctly.
+<img width="1187" height="714" alt="image" src="https://github.com/user-attachments/assets/49bbba11-e583-4630-8e60-723fac1aeb88" />
 
-For the routes.py endpoint, the output video shows three stacked histograms, one for each channel (Y, U, and V) as the following image:
+We created a separate file 'changes.txt' to define the new changes that AI has implemented with respect to the new GUI interface and the file optimization. 
 
-<img width="614" height="914" alt="Screenshot 2025-12-01 at 12 06 34" src="https://github.com/user-attachments/assets/65c5e456-a211-4c72-a46d-9acde42b0b4b" />
 
 
