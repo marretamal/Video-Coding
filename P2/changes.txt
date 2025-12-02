@@ -1,0 +1,105 @@
+1. Introduction
+
+This document summarizes all improvements made using AI assistance. These enhancements cover the aesthetic redesign of the graphical user interface, code refactoring for clarity and maintainability, and the creation of automated unit tests to validate core API functionalities.
+AI support was used to:
+- Improve the visual quality and usability of the GUI
+- Suggest clean architecture practices for routes and services
+- Write and refine unit tests
+- Optimize Docker behavior and environment management
+- Debug recurring errors in the API and in the GUI loading process
+
+2. GUI Improvements
+
+2.1 Original State
+
+Initially, the GUI consisted of a plain HTML page with:
+- No styling
+- Default fonts
+- No layout structure
+- No visual hierarchy
+- Minimal user engagement
+
+The result was functional but not visually appealing.
+
+2.2 Improvements Made With AI
+
+- Modern Typography: AI suggested adding Google Fonts, selecting the Poppins font family to make the interface more clean and fun.
+
+- Fully Redesigned Layout
+
+    AI provided a redesign using:
+    - A centered main container
+    - Glassmorphism cards
+    - Shadows and soft edges
+    - Clear sections for each API function
+
+- Animated Gradient Background
+
+    AI suggested adding a dynamic background to make the GUI more original and visually attractive.
+    Example:
+    background: linear-gradient(120deg, #6a11cb, #2575fc);
+    background-size: 300% 300%;
+    animation: gradientAnimation 10s ease infinite;
+
+- Removal of Emojis, Replaced With Clean Visual Icons: AI recommended removing emoji prefixes in titles to maintain a more polished and professional appearance.
+
+- Section Icons: Instead of emojis, modern icons were created through colored headings.
+
+- Hover Animations & Interactivity: Buttons now animate when hovered, improving feedback and user engagement.
+
+- Improved File Input Areas: AI improved how the file upload module is displayed, making the interface more intuitive for users.
+
+3. Backend Improvements
+
+3.1 Code Cleanup
+
+AI helped to:
+
+* Reduce repetition in transcoding endpoints
+* Add comments and explanations
+* Fix issues with missing imports
+* Detect errors during container build and API loading
+
+
+3.2 FFmpeg Service Optimization
+
+The AI did the following changes in the ffmpeg file:
+
+* Removed repeated file-saving code → introduced save_temp() helper
+* Removed duplicate subprocess.run patterns → run_cmd() helper
+* Removed unused imports
+* Unified formatting
+* Shortened repeated FFmpeg command blocks
+* Cleaned /resize & /grayscale endpoints
+* Ensured same functionality, zero behavior changes
+
+4. Unit Tests
+
+4.1 New Tests Introduced
+
+AI generated a full test_api.py file including:
+
+* Parameterized tests for four codecs: vp8, vp9, h265, av1
+* Tests verifying video-info metadata is returned correctly
+* Tests validating ZIP generation for encoding ladder
+
+4.2 Supporting Sample Video
+
+AI suggested adding a dedicated folder:
+test_files/sample.mp4
+
+This ensures that unit tests always have a known, working input file. 
+We have deleted the video for the delivery.
+
+5. Debugging & Error Fixes Done With AI
+
+Tests failing due to missing sample.mp4
+
+AI identified missing test files inside the container and solved the problem by copying the folder in the Docker build context.
+
+6. Conclusion
+
+Thanks to AI, the project now includes:
+* A visually engaging and modern web GUI
+* Clean and maintainable backend code
+* Automated transcoding, encoding ladder, and video info extraction
