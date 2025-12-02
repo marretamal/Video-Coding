@@ -2,113 +2,147 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Video Transcoding GUI</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Video Processing Playground</title>
+
+    <!-- Fun Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(-45deg, #141e30, #243b55, #3f4c6b, #1e3c72);
+            background-size: 400% 400%;
+            animation: gradientBG 12s ease infinite;
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+            color: #fff;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            width: 900px;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.08);
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.6rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #ffdf6c;
+            text-shadow: 0px 2px 10px rgba(255,255,255,0.2);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            margin-top: 30px;
+            color: #ffe7a3;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 6px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+
+        label {
+            font-weight: 500;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px;
+            font-size: 1rem;
+            border-radius: 8px;
+            background-color: #ffdf6c;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #ffeaa3;
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
+
 <body>
 
 <div class="container">
-    <h1>🎬 Video Processing Studio</h1>
-    <p class="subtitle">Upload → Transcode → Analyze</p>
 
-    <!-- Upload Section -->
+    <h1>Video Processing Playground</h1>
+
+    <!-- TRANSCODING -->
+    <div class="section-title">🎬 Video Transcoding</div>
     <div class="card">
-        <h2>1. Upload a Video</h2>
-        <input id="fileInput" type="file" class="file-upload">
-        <p class="hint">Accepted formats: MP4, MKV, WebM</p>
+        <form action="/transcode-video" method="post" enctype="multipart/form-data">
+            <label>Select video:</label>
+            <input type="file" name="file" accept="video/*" required>
+
+            <label>Select codec:</label>
+            <select name="codec">
+                <option value="vp8">VP8</option>
+                <option value="vp9">VP9</option>
+                <option value="h265">H.265</option>
+                <option value="av1">AV1</option>
+            </select>
+
+            <button type="submit">Transcode Video</button>
+        </form>
     </div>
 
-    <!-- Single Transcoding -->
+    <!-- ENCODING LADDER -->
+    <div class="section-title">📐 Encoding Ladder Generator</div>
     <div class="card">
-        <h2>2. Transcode to Another Codec</h2>
+        <form action="/encoding-ladder" method="post" enctype="multipart/form-data">
+            <label>Upload video:</label>
+            <input type="file" name="file" accept="video/*" required>
 
-        <label>Select codec:</label>
-        <select id="codec">
-            <option value="vp8">VP8</option>
-            <option value="vp9">VP9</option>
-            <option value="h265">H.265</option>
-            <option value="av1">AV1</option>
-        </select>
-
-        <button onclick="transcode()" class="btn primary">Convert</button>
+            <button type="submit">Generate Ladder ZIP</button>
+        </form>
     </div>
 
-    <!-- Encoding Ladder -->
+    <!-- VIDEO INFO -->
+    <div class="section-title">🔍 Inspect Video Metadata</div>
     <div class="card">
-        <h2>3. Generate Encoding Ladder</h2>
-        <p class="hint">Creates multiple renditions in a .zip (240p → 1080p)</p>
+        <form action="/process-video-info" method="post" enctype="multipart/form-data">
+            <label>Upload video:</label>
+            <input type="file" name="file" accept="video/*" required>
 
-        <button onclick="ladder()" class="btn secondary">Generate Ladder</button>
+            <button type="submit">Show Info</button>
+        </form>
     </div>
 
-    <!-- Video Info -->
-    <div class="card">
-        <h2>4. Analyze Video</h2>
-        <button onclick="videoInfo()" class="btn info">Get Info</button>
-
-        <pre id="infoDisplay"></pre>
-    </div>
 </div>
-
-<script>
-    async function transcode() {
-        const file = document.getElementById("fileInput").files[0];
-        const codec = document.getElementById("codec").value;
-
-        if (!file) { alert("Please upload a video."); return; }
-
-        const form = new FormData();
-        form.append("file", file);
-
-        const res = await fetch(`/transcode-video?codec=${codec}`, {
-            method: "POST",
-            body: form
-        });
-
-        const blob = await res.blob();
-        download(blob, `output_${codec}`);
-    }
-
-    async function ladder() {
-        const file = document.getElementById("fileInput").files[0];
-        if (!file) { alert("Please upload a video."); return; }
-
-        const form = new FormData();
-        form.append("file", file);
-
-        const res = await fetch("/encoding-ladder", {
-            method: "POST",
-            body: form
-        });
-
-        const blob = await res.blob();
-        download(blob, "encoding_ladder.zip");
-    }
-
-    async function videoInfo() {
-        const file = document.getElementById("fileInput").files[0];
-        if (!file) { alert("Please upload a video."); return; }
-
-        const form = new FormData();
-        form.append("file", file);
-
-        const res = await fetch("/process-video-info", {
-            method: "POST",
-            body: form
-        });
-
-        document.getElementById("infoDisplay").textContent =
-            JSON.stringify(await res.json(), null, 4);
-    }
-
-    function download(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        a.click();
-    }
-</script>
-
 </body>
 </html>

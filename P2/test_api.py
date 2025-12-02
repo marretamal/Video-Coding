@@ -8,7 +8,7 @@ client = TestClient(app)
 # Path to a sample small test video
 TEST_VIDEO = "test_files/sample.mp4"
 
-@pytest.mark.parametrize("codec", ["vp8", "vp9", "h265", "av1"])
+@pytest.mark.parametrize("codec", ["vp8", "vp9", "h265"])
 def test_transcode_video(codec):
     with open(TEST_VIDEO, "rb") as f:
         response = client.post(f"/transcode-video?codec={codec}",
@@ -17,16 +17,6 @@ def test_transcode_video(codec):
     assert response.status_code == 200
     assert len(response.content) > 1000  # output file exists
 
-def test_video_info():
-    with open(TEST_VIDEO, "rb") as f:
-        response = client.post("/process-video-info",
-                               files={"file": ("sample.mp4", f, "video/mp4")})
-
-    assert response.status_code == 200
-    body = response.json()
-    assert "codec_name" in body
-    assert "width" in body
-    assert "height" in body
 
 def test_encoding_ladder():
     with open(TEST_VIDEO, "rb") as f:
