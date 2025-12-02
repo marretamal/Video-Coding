@@ -104,6 +104,21 @@ async def transcode_video_api(
         headers={"Content-Disposition": f"attachment; filename=transcoded_{codec}{out_ext}"}
     )
 
+@router.post("/video-info")
+async def video_info_api(file: UploadFile = File(...)):
+  
+    files = {"file": (file.filename, await file.read(), file.content_type)}
+
+    r = requests.post(f"{FFMPEG_URL}/video-info", files=files)
+
+    if r.status_code != 200:
+
+        return JSONResponse(
+            {"error": "ffmpeg-service /video-info failed", "detail": r.text},
+            status_code=500,
+        )
+
+    return JSONResponse(r.json())
 
 @router.post("/resize-video")
 async def resize_video(file: UploadFile = File(...), width: int = 640, height: int = 360):
