@@ -11,8 +11,8 @@ templates = Jinja2Templates(directory="templates")
 app.include_router(router)
 
 from fastapi import Request
-
-@app.get("/")
+ 
+@app.get("/") # Home route
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
