@@ -2,128 +2,112 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Video Transcoding GUI (P2)</title>
+    <title>Video Transcoding GUI</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-<h1>🎬 Video Transcoding GUI</h1>
+<div class="container">
+    <h1>🎬 Video Processing Studio</h1>
+    <p class="subtitle">Upload → Transcode → Analyze</p>
 
-<section class="panel">
-    <h2>1. Upload video</h2>
-    <input type="file" id="video-file" />
-    <p class="hint">Use Big Buck Bunny or any video file.</p>
-</section>
+    <!-- Upload Section -->
+    <div class="card">
+        <h2>1. Upload a Video</h2>
+        <input id="fileInput" type="file" class="file-upload">
+        <p class="hint">Accepted formats: MP4, MKV, WebM</p>
+    </div>
 
-<section class="panel">
-    <h2>2. Single Transcoding</h2>
+    <!-- Single Transcoding -->
+    <div class="card">
+        <h2>2. Transcode to Another Codec</h2>
 
-    <label for="codec-select">Choose codec:</label>
-    <select id="codec-select">
-        <option value="vp8">VP8</option>
-        <option value="vp9">VP9</option>
-        <option value="h265">H.265</option>
-        <option value="av1">AV1</option>
-    </select>
+        <label>Select codec:</label>
+        <select id="codec">
+            <option value="vp8">VP8</option>
+            <option value="vp9">VP9</option>
+            <option value="h265">H.265</option>
+            <option value="av1">AV1</option>
+        </select>
 
-    <button onclick="transcode()">Convert</button>
-</section>
+        <button onclick="transcode()" class="btn primary">Convert</button>
+    </div>
 
-<section class="panel">
-    <h2>3. Encoding Ladder</h2>
-    <p class="hint">
-        This will generate multiple resolutions/bitrates using your
-        <code>/encoding-ladder</code> endpoint.
-    </p>
-    <button onclick="encodingLadder()">Run Encoding Ladder</button>
-</section>
+    <!-- Encoding Ladder -->
+    <div class="card">
+        <h2>3. Generate Encoding Ladder</h2>
+        <p class="hint">Creates multiple renditions in a .zip (240p → 1080p)</p>
 
-<section class="panel">
-    <h2>4. Video Info</h2>
-    <button onclick="videoInfo()">Get Video Info</button>
-</section>
+        <button onclick="ladder()" class="btn secondary">Generate Ladder</button>
+    </div>
 
-<section id="output" class="panel">
-    <h2>Output</h2>
-    <pre id="output-text">(results will appear here)</pre>
-</section>
+    <!-- Video Info -->
+    <div class="card">
+        <h2>4. Analyze Video</h2>
+        <button onclick="videoInfo()" class="btn info">Get Info</button>
 
+        <pre id="infoDisplay"></pre>
+    </div>
+</div>
 
 <script>
-function getFile() {
-    const input = document.getElementById("video-file");
-    if (!input.files.length) {
-        alert("Please select a video file first.");
-        return null;
-    }
-    return input.files[0];
-}
+    async function transcode() {
+        const file = document.getElementById("fileInput").files[0];
+        const codec = document.getElementById("codec").value;
 
-async function transcode() {
-    const file = getFile();
-    if (!file) return;
+        if (!file) { alert("Please upload a video."); return; }
 
-    const codec = document.getElementById("codec-select").value;
+        const form = new FormData();
+        form.append("file", file);
 
-    const formData = new FormData();
-    formData.append("file", file);
+        const res = await fetch(`/transcode-video?codec=${codec}`, {
+            method: "POST",
+            body: form
+        });
 
-    const response = await fetch(`/transcode?codec=${codec}`, {
-        method: "POST",
-        body: formData
-    });
-
-    if (!response.ok) {
-        document.getElementById("output-text").textContent =
-            "Error: " + response.status + " " + response.statusText;
-        return;
+        const blob = await res.blob();
+        download(blob, `output_${codec}`);
     }
 
-    // Download resulting video
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `output_${codec}.webm`;  // or .mp4 depending on your implementation
-    a.click();
-    document.getElementById("output-text").textContent =
-        `Downloaded transcoded file with codec: ${codec}`;
-}
+    async function ladder() {
+        const file = document.getElementById("fileInput").files[0];
+        if (!file) { alert("Please upload a video."); return; }
 
-async function encodingLadder() {
-    const file = getFile();
-    if (!file) return;
+        const form = new FormData();
+        form.append("file", file);
 
-    const formData = new FormData();
-    formData.append("file", file);
+        const res = await fetch("/encoding-ladder", {
+            method: "POST",
+            body: form
+        });
 
-    const response = await fetch(`/encoding-ladder`, {
-        method: "POST",
-        body: formData
-    });
+        const blob = await res.blob();
+        download(blob, "encoding_ladder.zip");
+    }
 
-    // Assuming your /encoding-ladder returns JSON (list of variants, bitrates, etc.)
-    const data = await response.json();
-    document.getElementById("output-text").textContent =
-        JSON.stringify(data, null, 4);
-}
+    async function videoInfo() {
+        const file = document.getElementById("fileInput").files[0];
+        if (!file) { alert("Please upload a video."); return; }
 
-async function videoInfo() {
-    const file = getFile();
-    if (!file) return;
+        const form = new FormData();
+        form.append("file", file);
 
-    const formData = new FormData();
-    formData.append("file", file);
+        const res = await fetch("/process-video-info", {
+            method: "POST",
+            body: form
+        });
 
-    const response = await fetch(`/process-video`, {
-        method: "POST",
-        body: formData
-    });
+        document.getElementById("infoDisplay").textContent =
+            JSON.stringify(await res.json(), null, 4);
+    }
 
-    const data = await response.json();
-    document.getElementById("output-text").textContent =
-        JSON.stringify(data, null, 4);
-}
+    function download(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+    }
 </script>
 
 </body>

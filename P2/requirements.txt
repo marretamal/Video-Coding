@@ -8,3 +8,4 @@ pywavelets
 python-multipart
 requests
 jinja2 #templating engine for rendering HTML pages
+pytest-asyncio #for testing asynchronous FastAPI endpoints

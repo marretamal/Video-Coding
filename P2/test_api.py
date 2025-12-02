@@ -1,20 +1,36 @@
-import unittest
+import os
+import pytest
 from fastapi.testclient import TestClient
-from practice1 import app
+from practice1 import app  # your API
 
 client = TestClient(app)
 
-class TestAPI(unittest.TestCase):
+# Path to a sample small test video
+TEST_VIDEO = "test_files/sample.mp4"
 
-    def test_rgb_to_yuv(self):
-        r = client.get("/rgb-to-yuv?r=100&g=150&b=200")
-        assert r.status_code == 200
-        data = r.json()
-        assert "y" in data
+@pytest.mark.parametrize("codec", ["vp8", "vp9", "h265", "av1"])
+def test_transcode_video(codec):
+    with open(TEST_VIDEO, "rb") as f:
+        response = client.post(f"/transcode-video?codec={codec}",
+                               files={"file": ("sample.mp4", f, "video/mp4")})
 
-    def test_yuv_to_rgb(self):
-        r = client.get("/yuv-to-rgb?y=140&u=128&v=128")
-        assert r.status_code == 200
-        assert "r" in r.json()
+    assert response.status_code == 200
+    assert len(response.content) > 1000  # output file exists
 
-    
+def test_video_info():
+    with open(TEST_VIDEO, "rb") as f:
+        response = client.post("/process-video-info",
+                               files={"file": ("sample.mp4", f, "video/mp4")})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "codec_name" in body
+    assert "width" in body
+    assert "height" in body
+
+def test_encoding_ladder():
+    with open(TEST_VIDEO, "rb") as f:
+        response = client.post("/encoding-ladder",
+                               files={"file": ("sample.mp4", f, "video/mp4")})
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
