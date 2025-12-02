@@ -80,5 +80,7 @@ The tests require a small input video to run. Therefore, we added: test_files/sa
 The output lists all passing and failing tests, ensuring that the backend behaves correctly.
 <img width="1187" height="714" alt="image" src="https://github.com/user-attachments/assets/49bbba11-e583-4630-8e60-723fac1aeb88" />
 
+We created a separate file 'changes.txt' to define the new changes that AI has implemented with respect to the new GUI interface and the file optimization. 
+
 
 
