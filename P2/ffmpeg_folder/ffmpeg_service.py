@@ -167,3 +167,30 @@ async def grayscale(file: UploadFile = File(...)):
     subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     return {"output_file": out_path}
+
+@app.post("/video-info")
+async def video_info(file: UploadFile = File(...)):
+    # Save the input file
+    src = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    src.write(await file.read())
+    src.close()
+
+    # FFprobe command to extract metadata
+    cmd = [
+        "ffprobe",
+        "-v", "quiet",
+        "-print_format", "json",
+        "-show_format",
+        "-show_streams",
+        src.name
+    ]
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    if result.returncode != 0:
+        return JSONResponse(
+            {"error": "ffprobe failed", "details": result.stderr.decode()},
+            status_code=500
+        )
+
+    return JSONResponse(result.stdout.decode())
